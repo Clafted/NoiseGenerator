@@ -18,29 +18,16 @@
 #include <cstdint>
 #include <fstream>
 #include <cmath>
+#include <vector>
 
 // CODE FROM dev.to POST (LINK IS ABOVE ^^^)
 // ----------------------------------------------------------------------
-// Metadata size of 14 bytes (look at variable types)
-struct BmpHeader {
-    char bitmapSignatureBytes[2] = {'B', 'M'};
-    uint32_t sizeOfBitmapFile = 54 + 786432;
-    uint32_t reservedBytes = 0;
-    uint32_t pixelDataOffset = 54;
 
-    void save_on_file(std::ofstream& fout) {
-        fout.write(this->bitmapSignatureBytes, 2);
-        fout.write((char*)&this->sizeOfBitmapFile, sizeof(uint32_t));
-        fout.write((char*)&this->reservedBytes, sizeof(uint32_t));
-        fout.write((char*)&this->pixelDataOffset, sizeof(uint32_t));
-    }
-} bmpHeader;
-
-// Also metadata, size of 40 bytes
+// Metadata, size of 40 bytes
 struct BmpInfoHeader {
     uint32_t sizeOfThisHeader = 40;
-    int32_t width = 512; // in pixels
-    int32_t height = 512; // in pixels
+    int32_t width = 64; // in pixels
+    int32_t height = 64; // in pixels
     uint16_t numberOfColorPlanes = 1; // must be 1
     uint16_t colorDepth = 24;
     uint32_t compressionMethod = 0;
@@ -65,6 +52,21 @@ struct BmpInfoHeader {
     }
 } bmpInfoHeader;
 
+// Metadata size of 14 bytes (look at variable types)
+struct BmpHeader {
+    char bitmapSignatureBytes[2] = {'B', 'M'};
+    uint32_t sizeOfBitmapFile = 54 + bmpInfoHeader.width * bmpInfoHeader.height * 3;
+    uint32_t reservedBytes = 0;
+    uint32_t pixelDataOffset = 54;
+
+    void save_on_file(std::ofstream& fout) {
+        fout.write(this->bitmapSignatureBytes, 2);
+        fout.write((char*)&this->sizeOfBitmapFile, sizeof(uint32_t));
+        fout.write((char*)&this->reservedBytes, sizeof(uint32_t));
+        fout.write((char*)&this->pixelDataOffset, sizeof(uint32_t));
+    }
+} bmpHeader;
+
 struct Pixel {
     uint8_t r = 2;
     uint8_t g = 2;
@@ -78,25 +80,128 @@ struct Pixel {
 } pixel;
 // ----------------------------------------------------------------------
 
+struct vec2 {
+    float x;
+    float y;
+
+    vec2() : x(0), y(0) {};
+    vec2(float x, float y) 
+        : x(x), y(y) {};
+
+    vec2 operator+(vec2 other) {
+        return vec2(this->x + other.x, this->y + other.y);
+    }
+
+    template <typename T>
+    vec2 operator+(T other) {
+        return vec2(this->x + other, this->y + other);
+    }
+
+    vec2 operator-(vec2 other) {
+        return vec2(this->x - other.x, this->y - other.y);
+    }
+
+    template <typename T>
+    vec2 operator-(T other) {
+        return vec2(this->x - other, this->y - other);
+    }
+
+    template <typename T>
+    vec2 operator*(T other) {
+        return vec2(this->x * other, this->y * other);
+    }
+
+    template <typename T>
+    vec2 operator/(T other) {
+        return vec2(this->x / other, this->y / other);
+    }
+};
+
+struct Color {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+
+    Color() : r(0.0f), g(0.0f), b(0.0f) {};
+    Color (uint8_t r, uint8_t g, uint8_t b) 
+        : r(r), g(g), b(b) {};
+
+    Color operator*(float a) {
+        return Color(this->r * a, this->g * a, this->b * a);
+    }
+};
+
+Color *generatePerlinNoise(int width, int height, int spacing);
 
 int main() {
+    std::cout << "Generating noise...\n";
+
+    Color* perlinNoise = generatePerlinNoise(bmpInfoHeader.width, bmpInfoHeader.height, 8);
 
     // Image generation code (also from dev.to post)
     // ----------------------------------------------------------------------
-    std::ofstream fout("../../output4.bmp", std::ios::binary);
+    std::ofstream fout("../../output7.bmp", std::ios::binary);
     
     bmpHeader.save_on_file(fout);
     bmpInfoHeader.save_on_file(fout);
     size_t numberOfPixels = bmpInfoHeader.width * bmpInfoHeader.height;
     for (int i = 0; i < numberOfPixels; i++) {
-        pixel.r = 255 * ((std::cos(3.14 * ((float) (i % bmpInfoHeader.width) / bmpInfoHeader.width)) + 1) / 2);
-        pixel.g = 255 * ((std::cos(3.14 * ((float) (i / bmpInfoHeader.height) / bmpInfoHeader.height)) + 1) / 2);
-        pixel.b = 255 * ((-std::cos(3.14 * ((float) (i % bmpInfoHeader.width) / bmpInfoHeader.width)) + 1) / 2);
+        pixel.r = perlinNoise[i].r;
+        pixel.g = perlinNoise[i].g;
+        pixel.b = perlinNoise[i].b;
         pixel.save_on_file(fout);
     }
     fout.close();
     // ----------------------------------------------------------------------
-    
+
     std::cout << "Completed Image Generation";
     return 0;
+}
+
+vec2 normalize(vec2 target) {
+    float length = std::sqrt((target.x * target.x) + (target.y * target.y));
+    return vec2(target.x / length, target.y / length);
+}
+
+float dot(vec2 a, vec2 b) {
+    return (a.x * b.x) + (a.y * b.y);
+}
+
+float interpolate(float a, float b, float x) {
+    if (x < 0.0f) return a;
+    if (x > 1.0f) return b;
+    return a + (b - a) * x;
+}
+
+Color *generatePerlinNoise(int width, int height, int spacing) {
+    std::vector<vec2> gradients(((width / spacing) + 1) * ((height / spacing) + 1));
+    std::vector<Color> result(width * height);
+
+    // Create random gradients with equal spacing
+    for (int i = 0; i < gradients.size(); i++) {
+        gradients[i] = normalize(vec2((rand() % 1000) - 500, (rand() % 1000) - 500));
+    }
+    vec2 targetPoint;
+    vec2 closestGradient;
+    vec2 directionToTarget;
+    int gX, gY, closestGradientIndex;
+    float colorValue;
+    for (int i = 0; i < width * height; i++) {
+        targetPoint.x = i % width;
+        targetPoint.y = i / width;
+        // Determine coordinates and index of gradient nearest the target
+        gX = (int)(targetPoint.x + (spacing / 2)) / spacing;
+        gY = (int)(targetPoint.y + (spacing / 2)) / spacing;
+        closestGradientIndex = gX + (gY * width / spacing);
+        closestGradient = vec2(gX, gY) * spacing;
+        // Calculate dot-product between vector to target and closest gradient
+        directionToTarget = normalize(targetPoint - closestGradient);
+        colorValue = (dot(directionToTarget, gradients[closestGradientIndex]) + 1) / 2.0f;
+        // Convert colorValue into a greyscale color
+        result[i] = Color(255.0f, 255.0f, 255.0f) * colorValue;
+    }
+    // Bilinear Interpolation
+    // -----------------------------------------------
+
+    return &result[0];
 }
