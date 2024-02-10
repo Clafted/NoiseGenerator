@@ -1,0 +1,24 @@
+CC = g++
+BUILDDIR = ..\build
+CLASSES = $(wildcard *.cpp)
+VPATH = $(BUILDDIR)
+
+# Replace the .cpp suffix with .o
+BINARIES = $(CLASSES:.cpp=.obj)
+
+build: directories ngn.lib
+
+rebuild: clean build
+
+directories:
+	mkdir $(BUILDDIR)
+
+ngn.lib: $(BINARIES)
+	ar -rcs $(BUILDDIR)\ngn.lib $(addprefix $(BUILDDIR)\,$^)
+
+# Implicit rule to compile any cpp file into the build director
+%.obj: %.cpp
+	$(CC) -c -o $(BUILDDIR)\$@ $^
+
+clean:
+	rm -r $(BUILDDIR)
