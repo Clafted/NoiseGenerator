@@ -5,7 +5,7 @@
 #include <vector>
 
 namespace NoiseGenerator {
-    std::vector<Color> generatePerlinNoise(int width, int height, int spacing);
+    std::vector<Color> generatePerlinNoise(int width, int height, int spacing, int intervals);
 };
 
 #endif

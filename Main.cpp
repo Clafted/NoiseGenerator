@@ -22,7 +22,7 @@ using namespace ImageGenerator;
 
 int main() {
     std::cout << "Generating noise...\n";
-    std::vector<Color> colors = NoiseGenerator::generatePerlinNoise(512, 512, 64);
+    std::vector<Color> colors = NoiseGenerator::generatePerlinNoise(512, 512, 128, 3);
     generateImage("output", 512, 512, colors);
     std::cout << "Completed Image Generation";
     return 0;

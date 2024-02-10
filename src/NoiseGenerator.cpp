@@ -13,7 +13,8 @@ using namespace std::chrono;
 
 float easedInterpolate(float a, float b, float x);
 
-std::vector<Color> NoiseGenerator::generatePerlinNoise(int finalWidth, int finalHeight, int spacing) {
+std::vector<Color> NoiseGenerator::generatePerlinNoise(int finalWidth, int finalHeight, int spacing, int intervals) {
+    if (intervals <= 0) return std::vector<Color>(finalWidth*finalHeight);
     // Generate gradients
     double theta;
     std::vector<vec2> normals((finalWidth / spacing + 1) * (finalHeight / spacing + 1));
@@ -54,6 +55,11 @@ std::vector<Color> NoiseGenerator::generatePerlinNoise(int finalWidth, int final
                 }
             }
         }
+    }
+
+    std::vector<Color> previousIntervals = generatePerlinNoise(finalWidth, finalHeight, spacing / 2, intervals - 1);
+    for (int i = 0; i < result.size(); i++) {
+        result[i] = previousIntervals[i] * ((float) (intervals-1)/intervals) + result[i] * (1.0/intervals);
     }
 
     return result;
