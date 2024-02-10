@@ -22,8 +22,8 @@ using namespace ImageGenerator;
 
 int main() {
     std::cout << "Generating noise...\n";
-    std::vector<Color> colors = NoiseGenerator::generatePerlinNoise(1024, 1024, 128);
-    generateImage("output", 1024, 1024, colors);
+    std::vector<Color> colors = NoiseGenerator::generatePerlinNoise(512, 512, 64);
+    generateImage("output", 512, 512, colors);
     std::cout << "Completed Image Generation";
     return 0;
 }

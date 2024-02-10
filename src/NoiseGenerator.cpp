@@ -5,6 +5,8 @@
 #include <ratio>
 #include <iostream>
 #include <chrono>
+#include <random>
+#include <algorithm>
 
 using namespace Math;
 using namespace std::chrono;
@@ -17,35 +19,38 @@ std::vector<Color> NoiseGenerator::generatePerlinNoise(int finalWidth, int final
     std::vector<vec2> normals((finalWidth / spacing + 1) * (finalHeight / spacing + 1));
     high_resolution_clock::time_point start = high_resolution_clock::now();
     for (int i = 0; i < normals.size(); i++) {
-        srand(i + 1000000000 * duration_cast<duration<double>>(high_resolution_clock::now() - start).count());
-        theta = (rand() % 360) * 3.1415 / 180.0;
+        srand(1000000000 * duration_cast<duration<double>>(high_resolution_clock::now() - start).count());
+        theta = (rand() % 360)*3.1415 / 180.0;
         normals[i] = vec2(sin(theta), cos(theta));
     }
-    vec2 tLCorner, tRCorner, bLCorner, bRCorner;
-    float tL, tR, bL, bR, xI1, xI2, finalColor;
-    std::vector<Color> result(finalWidth * finalHeight);
+    std::shuffle(normals.begin(), normals.end(), std::default_random_engine(rand()));
+    // Calculate pixel colors
+    vec2 g0, g1, g2, g3;
+    float dot0, dot1, dot2, dot3;
+    float xI1, xI2, finalColor;
+    std::vector<Color> result(finalWidth*finalHeight);
     // Traverse cells
-    for (int x = 0; x < finalWidth / spacing; x++) {
-        for (int y = 0; y < finalHeight / spacing; y++) {
+    for (int gX = 0; gX < finalWidth/spacing; gX++) {
+        for (int gY = 0; gY < finalHeight/spacing; gY++) {
             // Find the four corner normals
-            tLCorner = normals[x + (finalWidth / spacing + 1) * y];
-            tRCorner = normals[(x + 1) + (finalWidth / spacing + 1) * y];
-            bLCorner = normals[x + (finalWidth / spacing + 1) * (y + 1)];
-            bLCorner = normals[(x + 1) + (finalWidth / spacing + 1) * (y + 1)];
-            // Traverse pixels
-            for (int x2 = 0; x2 < spacing; x2++) {
-                for (int y2 = 0; y2 < spacing; y2++) {
+            g0 = normals[(finalWidth/spacing + 1)*gY + gX];
+            g1 = normals[(finalWidth/spacing + 1)*gY + gX+1];
+            g2 = normals[(finalWidth/spacing + 1)*(gY+1) + gX];
+            g3 = normals[(finalWidth/spacing + 1)*(gY+1) + gX+1];
+            // Traverse pigxels
+            for (int x = 0; x < spacing; x++) {
+                for (int y = 0; y < spacing; y++) {
                     // Calculate dot-products with four corners
-                    tL = dotProduct(vec2(x2, y2) / spacing, tLCorner);
-                    tR = dotProduct(vec2(x2 - spacing, y2) / spacing, tRCorner);
-                    bL = dotProduct(vec2(x2, y2 - spacing) / spacing, bLCorner);
-                    bR = dotProduct(vec2(x2 - spacing, y2 - spacing) / spacing, bRCorner);
+                    dot0 = dotProduct(vec2(x, y) / spacing, g0);
+                    dot1 = dotProduct(vec2(x-spacing, y) / spacing, g1);
+                    dot2 = dotProduct(vec2(x, y-spacing) / spacing, g2);
+                    dot3 = dotProduct(vec2(x-spacing, y-spacing) / spacing, g3);
                     // Interpolate values
-                    xI1 = easedInterpolate(tL, tR, (float) x2 / (float) (spacing - 1));
-                    xI2 = easedInterpolate(bL, bR, (float) x2 / (float) (spacing - 1));
-                    finalColor = (easedInterpolate(xI1, xI2, (float)y2 / (float) (spacing - 1)) + 1.0) / 2.0f;
+                    xI1 = easedInterpolate(dot0, dot1, x/(spacing - 1.0));
+                    xI2 = easedInterpolate(dot2, dot3, x/(spacing - 1.0));
+                    finalColor = (easedInterpolate(xI1, xI2, y/(spacing - 1.0)) + 1.0) / 2.0f;
 
-                    result[(x * spacing) + x2 + ((y * spacing) + y2) * (finalWidth)] = Color(255, 255, 255) * finalColor;
+                    result[(gY*spacing + y)*finalWidth + gX*spacing + x] = Color(255, 255, 255) * finalColor;
                 }
             }
         }
