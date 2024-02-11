@@ -24,6 +24,7 @@ namespace Math {
         if (x < 0.0f) return a;
         if (x > 1.0f) return b;
         
-        return a + (b - a) * x;
+        float easedX = 6*x*x*x*x*x - 15*x*x*x*x + 10*x*x*x;
+        return a + (b - a) * easedX;
     }
 }

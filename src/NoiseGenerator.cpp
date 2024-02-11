@@ -11,10 +11,8 @@
 using namespace Math;
 using namespace std::chrono;
 
-float easedInterpolate(float a, float b, float x);
-
-std::vector<Color> NoiseGenerator::generatePerlinNoise(int finalWidth, int finalHeight, int spacing, int intervals) {
-    if (intervals <= 0) return std::vector<Color>(finalWidth*finalHeight);
+std::vector<float> NoiseGenerator::generatePerlinNoise(int finalWidth, int finalHeight, int spacing, int intervals) {
+    if (intervals <= 0) return std::vector<float>(finalWidth*finalHeight);
     // Generate gradients
     double theta;
     std::vector<vec2> normals((finalWidth / spacing + 1) * (finalHeight / spacing + 1));
@@ -29,7 +27,7 @@ std::vector<Color> NoiseGenerator::generatePerlinNoise(int finalWidth, int final
     vec2 g0, g1, g2, g3;
     float dot0, dot1, dot2, dot3;
     float xI1, xI2, finalColor;
-    std::vector<Color> result(finalWidth*finalHeight);
+    std::vector<float> result(finalWidth*finalHeight);
     // Traverse cells
     for (int gX = 0; gX < finalWidth/spacing; gX++) {
         for (int gY = 0; gY < finalHeight/spacing; gY++) {
@@ -42,31 +40,24 @@ std::vector<Color> NoiseGenerator::generatePerlinNoise(int finalWidth, int final
             for (int x = 0; x < spacing; x++) {
                 for (int y = 0; y < spacing; y++) {
                     // Calculate dot-products with four corners
-                    dot0 = dotProduct(vec2(x, y) / spacing, g0);
-                    dot1 = dotProduct(vec2(x-spacing, y) / spacing, g1);
-                    dot2 = dotProduct(vec2(x, y-spacing) / spacing, g2);
-                    dot3 = dotProduct(vec2(x-spacing, y-spacing) / spacing, g3);
+                    dot0 = dotProduct(vec2(x, y) / (spacing-1.0), g0);
+                    dot1 = dotProduct(vec2(x-spacing, y) / (spacing-1.0), g1);
+                    dot2 = dotProduct(vec2(x, y-spacing) / (spacing-1.0), g2);
+                    dot3 = dotProduct(vec2(x-spacing, y-spacing) / (spacing-1.0), g3);
                     // Interpolate values
-                    xI1 = easedInterpolate(dot0, dot1, x/(spacing - 1.0));
-                    xI2 = easedInterpolate(dot2, dot3, x/(spacing - 1.0));
-                    finalColor = (easedInterpolate(xI1, xI2, y/(spacing - 1.0)) + 1.0) / 2.0f;
+                    xI1 = interpolate(dot0, dot1, x/(spacing-1.0));
+                    xI2 = interpolate(dot2, dot3, x/(spacing-1.0));
+                    finalColor = (interpolate(xI1, xI2, y/(spacing-1.0)) + 0.65) / 1.3;
 
-                    result[(gY*spacing + y)*finalWidth + gX*spacing + x] = Color(255, 255, 255) * finalColor;
+                    result[(gY*spacing + y)*finalWidth + gX*spacing + x] = finalColor;
                 }
             }
         }
     }
-
-    std::vector<Color> previousIntervals = generatePerlinNoise(finalWidth, finalHeight, spacing / 2, intervals - 1);
+    std::vector<float> previousIntervals = generatePerlinNoise(finalWidth, finalHeight, spacing / 2, intervals - 1);
     for (int i = 0; i < result.size(); i++) {
         result[i] = previousIntervals[i] * ((float) (intervals-1)/intervals) + result[i] * (1.0/intervals);
     }
 
     return result;
-}
-
-float easedInterpolate(float a, float b, float x)
-{
-    float easedX = 6*x*x*x*x*x - 15*x*x*x*x + 10*x*x*x;
-    return a + (b - a) * easedX;
 }
