@@ -41,13 +41,13 @@ std::vector<float> NoiseGenerator::generatePerlinNoise(int finalWidth, int final
                 for (int y = 0; y < spacing; y++) {
                     // Calculate dot-products with four corners
                     dot0 = dotProduct(vec2(x, y) / (spacing-1.0), g0);
-                    dot1 = dotProduct(vec2(x-spacing, y) / (spacing-1.0), g1);
-                    dot2 = dotProduct(vec2(x, y-spacing) / (spacing-1.0), g2);
-                    dot3 = dotProduct(vec2(x-spacing, y-spacing) / (spacing-1.0), g3);
+                    dot1 = dotProduct(vec2(x-(spacing-1), y) / ((spacing-1)-1.0), g1);
+                    dot2 = dotProduct(vec2(x, y-(spacing-1)) / ((spacing-1)-1.0), g2);
+                    dot3 = dotProduct(vec2(x-(spacing-1), y-(spacing-1)) / (spacing-1.0), g3);
                     // Interpolate values
                     xI1 = interpolate(dot0, dot1, x/(spacing-1.0));
                     xI2 = interpolate(dot2, dot3, x/(spacing-1.0));
-                    finalColor = (interpolate(xI1, xI2, y/(spacing-1.0)) + 0.65) / 1.3;
+                    finalColor = interpolate(xI1, xI2, y/(spacing-1.0));
 
                     result[(gY*spacing + y)*finalWidth + gX*spacing + x] = finalColor;
                 }

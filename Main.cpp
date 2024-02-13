@@ -22,32 +22,38 @@
 using namespace ImageGenerator;
 
 void generateMap(int width, int length);
+void generateNoise(int width, int length, int spacing, int intervals);
 
 int main() {
+    generateNoise(1024, 1024, 512, 4);
     generateMap(1024, 1024);
     return 0;
+}
+
+void generateNoise(int width, int length, int spacing, int intervals)
+{
+    std::vector<float> noise = NoiseGenerator::generatePerlinNoise(width, length, spacing, intervals);
+    std::vector<Color> result(width*length);
+    for (int i = 0; i < result.size(); i++) {
+        int lightness = ((noise[i] + 0.5f)) * 255;
+        result[i] = Color(lightness, lightness, lightness);
+    }
+    generateImage("output/noise", width, length, result);
 }
 
 void generateMap(int width, int length) 
 {
     std::cout << "Generating map...\n";
-    std::vector<float> height1 = NoiseGenerator::generatePerlinNoise(width, length, 512, 5);
-    std::vector<float> height2 = NoiseGenerator::generatePerlinNoise(width, length, 512, 1);
-    std::vector<float> height(width*length);
-    for (int i = 0; i < height.size(); i++) height[i] = height1[i] * (0.17f * log2(9 * (height2[i]+0.018f)) + 0.45f);
+    std::vector<float> mountains = NoiseGenerator::generatePerlinNoise(width, length, 512, 2);
+    std::vector<float> height = NoiseGenerator::generatePerlinNoise(width, length, 512, 4);
     std::vector<Color> island(width*length);
     // Convert shades into grass, sand, or water
     for (int i = 0; i < height.size(); i++) {
-        if(height[i] > 0.752f) {
-            island[i] = Color(255, 255, 255);
-        } else if(height[i] > 0.71f) {
-            island[i] = Color(100, 100, 110);
-        } else if (height[i] > 0.4f) {
-            island[i] = Color(50, height[i]*255 + 50, 10);
-        } else if (height[i] > 0.38f) {
-            island[i] = Color(height[i]*255 + 70, height[i]*255 + 50, 0);
+        mountains[i] = ((1 - (0.18f * (2 * (log2(std::abs(mountains[i] / 0.5f)) + 0.02f)) + 0.85f)) * 0.6f + (height[i] / 0.3f) * 0.4f);
+        if (mountains[i] <= 0.27f) {
+            island[i] = Color(40 * mountains[i], 100 * mountains[i], 110 * mountains[i]);
         } else {
-            island[i] = Color(0, 120, 155);
+            island[i] = Color((1.32f * (mountains[i] - 0.15)) * 140, (0.08f * pow(1.5f*mountains[i], 4) + 0.3f) * 140, pow(mountains[i], 6) * 10);
         }
     }
 
