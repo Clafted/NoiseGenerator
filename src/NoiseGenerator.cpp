@@ -11,6 +11,8 @@
 using namespace Math;
 using namespace std::chrono;
 
+float distance(vec2 a, vec2 b);
+
 std::vector<float> NoiseGenerator::generatePerlinNoise(int finalWidth, int finalHeight, int spacing, int intervals) {
     if (intervals <= 0) return std::vector<float>(finalWidth*finalHeight);
     // Generate gradients
@@ -60,4 +62,50 @@ std::vector<float> NoiseGenerator::generatePerlinNoise(int finalWidth, int final
     }
 
     return result;
+}
+
+std::vector<float> NoiseGenerator::generateWorleyNoise(int width, int height, int spacing)
+{
+    std::vector<vec2> points((width / spacing +1) * (height / spacing +1));
+    std::vector<float> result(width*height);
+
+    high_resolution_clock::time_point start = high_resolution_clock::now();
+    for (int cX = 0; cX < width/spacing + 1; cX++) {
+        for (int cY = 0; cY < width/spacing + 1; cY++) {
+            srand(1000000000 * duration_cast<duration<double>>(high_resolution_clock::now() - start).count());
+            points[cY*(width/spacing + 1) + cX].x = cX*spacing + rand() % spacing;
+            srand(1000000000 * duration_cast<duration<double>>(high_resolution_clock::now() - start).count());
+            points[cY*(width/spacing + 1) + cX].y = cY*spacing + rand() % spacing;
+        }
+    }
+    vec2 c0, c1, c2, c3;
+    vec2 pixel, closest;
+    // Traverse cells
+    for (int cX = 0; cX < width / spacing; cX++) {
+        for (int cY = 0; cY < height / spacing; cY++) {
+            c0 = points[cY * (width / spacing + 1) + cX];
+            c1 = points[cY * (width / spacing + 1) + cX + 1];
+            c2 = points[(cY+1) * (width / spacing + 1) + cX];
+            c3 = points[(cY+1) * (width / spacing + 1) + cX + 1];
+    
+            // Traverse pixels
+            for(int x = 0; x < spacing; x++) {
+                for(int y = 0; y < spacing; y++) {
+                    pixel = vec2(x + cX*spacing, y + cY*spacing);
+                    closest = c0;
+                    if (distance(pixel, c1) < distance(pixel, closest)) closest = c1;
+                    if (distance(pixel, c2) < distance(pixel, closest)) closest = c2;
+                    if (distance(pixel, c3) < distance(pixel, closest)) closest = c3;
+
+                    result[((y + cY*spacing) * width) + x + cX*spacing] = distance(pixel, closest) / spacing;
+                }
+            }
+        }
+    }
+
+    return result;
+}
+
+float distance(vec2 a, vec2 b) {
+    return sqrt(pow(a.x - b.x, 2) + pow(a.y - b.y, 2));
 }

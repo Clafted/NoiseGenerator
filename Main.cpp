@@ -23,11 +23,22 @@ using namespace ImageGenerator;
 
 void generateMap(int width, int length);
 void generateNoise(int width, int length, int spacing, int intervals);
+void generateWorleyNoise(int width, int height, int spacing);
 
 int main() {
-    generateNoise(1024, 1024, 512, 4);
-    generateMap(1024, 1024);
+    generateWorleyNoise(512, 512, 128);
     return 0;
+}
+
+void generateWorleyNoise(int width, int height, int spacing)
+{
+    std::vector<float> noise = NoiseGenerator::generateWorleyNoise(width, height, spacing);
+    std::vector<Color> colors(width*height);
+    for(int i = 0; i < colors.size();  i++) {
+        colors[i] = Color(255, 255, 255) * noise[i];
+    }
+    generateImage("output/worley", width, height, colors);
+    std::cout << "DONE";
 }
 
 void generateNoise(int width, int length, int spacing, int intervals)
@@ -53,7 +64,7 @@ void generateMap(int width, int length)
         if (mountains[i] <= 0.27f) {
             island[i] = Color(40 * mountains[i], 100 * mountains[i], 110 * mountains[i]);
         } else {
-            island[i] = Color((1.32f * (mountains[i] - 0.15)) * 140, (0.08f * pow(1.5f*mountains[i], 4) + 0.3f) * 140, pow(mountains[i], 6) * 10);
+            island[i] = Color((1.32f * (mountains[i] - 0.15)) * 240, (0.08f * pow(1.5f*mountains[i], 4) + 0.3f) * 240, pow(mountains[i], 6) * 10);
         }
     }
 
